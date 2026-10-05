@@ -1,0 +1,55 @@
+name: BIOG RUSSIA APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Find and unpack project
+        shell: bash
+        run: |
+          set -e
+          ZIP=$(find . -maxdepth 1 -type f -name '*.zip' | head -n 1)
+          test -n "$ZIP"
+          mkdir -p buildsrc
+          unzip -q "$ZIP" -d buildsrc
+          echo "ZIP: $ZIP"
+          find buildsrc -maxdepth 4 -type f | head -80
+
+      - name: Build debug APK
+        shell: bash
+        run: |
+          set -e
+          ROOT=$(dirname "$(find buildsrc -type f \( -name 'settings.gradle' -o -name 'settings.gradle.kts' \) | head -n 1)")
+          test -n "$ROOT"
+          cd "$ROOT"
+          gradle --no-daemon :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BIOG-RUSSIA-APK
+          path: buildsrc/**/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
