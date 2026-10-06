@@ -10,28 +10,60 @@ jobs:
   build:
     runs-on: windows-latest
 
-    defaults:
-      run:
-        working-directory: electron-launcher-main
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Extract project ZIP
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem -Path . -Filter *.zip -File | Select-Object -First 1
+
+          if (-not $zip) {
+            throw "ZIP with the BIOG RUSSIA project was not found."
+          }
+
+          New-Item -ItemType Directory -Force -Path build-src | Out-Null
+          Expand-Archive -Path $zip.FullName -DestinationPath build-src -Force
+
+          $pkg = Get-ChildItem -Path build-src -Filter package.json -File -Recurse | Select-Object -First 1
+
+          if (-not $pkg) {
+            throw "package.json was not found inside the project ZIP."
+          }
+
+          "LAUNCHER_DIR=$($pkg.Directory.FullName)" |
+            Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          Write-Host "Launcher found: $($pkg.FullName)"
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install dependencies
-        run: npm ci
+        shell: pwsh
+        run: |
+          Set-Location "$env:LAUNCHER_DIR"
+
+          if (Test-Path package-lock.json) {
+            npm ci
+          } else {
+            npm install
+          }
 
       - name: Build Windows launcher
-        run: npm run make
+        shell: pwsh
+        run: |
+          Set-Location "$env:LAUNCHER_DIR"
+          npm run make
 
       - name: Upload Windows launcher
         uses: actions/upload-artifact@v4
         with:
           name: BIOG-RUSSIA-CRMP-Windows
-          path: electron-launcher-main/out/make/**
-          
+          path: |
+            build-src/**/out/make/**
+            build-src/**/out/**
+          if-no-files-found: error
