@@ -22,8 +22,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: electron-launcher-main/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -31,8 +29,8 @@ jobs:
       - name: Build Windows launcher
         run: npm run make
 
-      - name: Upload EXE
+      - name: Upload Windows launcher
         uses: actions/upload-artifact@v4
         with:
           name: BIOG-RUSSIA-CRMP-Windows
-          path: electron-launcher-main/out/make/**/*
+          path: electron-launcher-main/out/make/**
