@@ -34,3 +34,4 @@ jobs:
         with:
           name: BIOG-RUSSIA-CRMP-Windows
           path: electron-launcher-main/out/make/**
+          
